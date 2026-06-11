@@ -6,6 +6,12 @@ export interface Topic {
   description?: string;
 }
 
+export interface LessonSource {
+  documentTitle: string;
+  pageNumber?: number;
+  excerpt?: string;
+}
+
 export interface LessonContent {
   title: string;
   overview: string;
@@ -24,6 +30,31 @@ export interface LessonContent {
   redFlags?: string;
   clientDiscussion?: string;
   commonIssues?: string;
+  sources?: LessonSource[];
+}
+
+export interface DocumentRecord {
+  id: string;
+  filename: string;
+  title: string;
+  description?: string | null;
+  topicTags: string[];
+  status: 'uploaded' | 'processing' | 'draft' | 'published' | 'failed';
+  createdAt: string;
+}
+
+export interface DraftLesson {
+  id: string;
+  topicTitle: string;
+  title: string;
+  overview: string | null;
+  createdAt: string;
+  sourceDocument: {
+    id: string;
+    filename: string;
+    title: string;
+  } | null;
+  lesson: LessonContent;
 }
 
 export enum LoadingStatus {

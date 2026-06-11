@@ -57,7 +57,7 @@ const TopicNode: React.FC<TopicNodeProps> = ({ topic, level, onGenerate, onExplo
           "
         >
           <BookOpen className="h-4 w-4" />
-          GENERATE LESSON
+          OPEN LESSON
         </button>
       </div>
 
