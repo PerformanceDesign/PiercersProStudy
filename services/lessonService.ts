@@ -23,22 +23,20 @@ type LessonRow = {
   lesson_sources?: {
     page_number: number | null;
     excerpt: string | null;
-    documents: {
-      title: string;
-    } | null;
+    documents: { title: string } | null;
   }[];
 };
 
-const emptyFallback = 'No documentation has been published for this section yet.';
+const EMPTY = 'No documentation has been published for this section yet.';
 
 const mapLessonRow = (row: LessonRow): LessonContent => ({
   title: row.title || row.topic_title,
-  overview: row.overview || emptyFallback,
-  anatomy: row.anatomy || emptyFallback,
-  tools: row.tools || emptyFallback,
-  procedure: row.procedure || emptyFallback,
-  aftercare: row.aftercare || emptyFallback,
-  complications: row.complications || emptyFallback,
+  overview: row.overview || EMPTY,
+  anatomy: row.anatomy || EMPTY,
+  tools: row.tools || EMPTY,
+  procedure: row.procedure || EMPTY,
+  aftercare: row.aftercare || EMPTY,
+  complications: row.complications || EMPTY,
   jewelrySpecs: row.jewelry_specs || undefined,
   painAndHealing: row.pain_and_healing || undefined,
   difficulty: row.difficulty || undefined,
@@ -48,10 +46,10 @@ const mapLessonRow = (row: LessonRow): LessonContent => ({
   redFlags: row.red_flags || undefined,
   clientDiscussion: row.client_discussion || undefined,
   commonIssues: row.common_issues || undefined,
-  sources: row.lesson_sources?.map((source) => ({
-    documentTitle: source.documents?.title || 'Uploaded documentation',
-    pageNumber: source.page_number || undefined,
-    excerpt: source.excerpt || undefined,
+  sources: row.lesson_sources?.map((s) => ({
+    documentTitle: s.documents?.title || 'Uploaded documentation',
+    pageNumber: s.page_number ?? undefined,
+    excerpt: s.excerpt ?? undefined,
   })),
 });
 
@@ -61,46 +59,22 @@ export const getLessonByTopic = async (topicTitle: string): Promise<LessonConten
   const { data, error } = await supabase
     .from('lessons')
     .select(`
-      id,
-      topic_title,
-      title,
-      overview,
-      anatomy,
-      tools,
-      procedure,
-      aftercare,
-      complications,
-      jewelry_specs,
-      pain_and_healing,
-      difficulty,
-      setup,
-      faqs,
-      pros_cons,
-      red_flags,
-      client_discussion,
-      common_issues,
-      lesson_sources (
-        page_number,
-        excerpt,
-        documents (
-          title
-        )
-      )
+      id, topic_title, title, overview, anatomy, tools, procedure, aftercare,
+      complications, jewelry_specs, pain_and_healing, difficulty, setup,
+      faqs, pros_cons, red_flags, client_discussion, common_issues,
+      lesson_sources ( page_number, excerpt, documents ( title ) )
     `)
     .eq('topic_title', topicTitle)
     .eq('status', 'published')
     .maybeSingle<LessonRow>();
 
-  if (error) {
-    throw error;
-  }
-
+  if (error) throw error;
   return data ? mapLessonRow(data) : null;
 };
 
 export const suggestTopics = async (existingTopics: string[]): Promise<Topic[]> => {
   const supabase = requireSupabase();
-  const existingTopicSet = new Set(existingTopics.map((topic) => topic.toLowerCase()));
+  const existing = new Set(existingTopics.map((t) => t.toLowerCase()));
 
   const { data, error } = await supabase
     .from('lessons')
@@ -109,16 +83,14 @@ export const suggestTopics = async (existingTopics: string[]): Promise<Topic[]> 
     .order('created_at', { ascending: false })
     .limit(25);
 
-  if (error) {
-    throw error;
-  }
+  if (error) throw error;
 
   return (data || [])
-    .filter((lesson) => !existingTopicSet.has((lesson.topic_title || lesson.title).toLowerCase()))
+    .filter((row) => !existing.has((row.topic_title || row.title).toLowerCase()))
     .slice(0, 5)
-    .map((lesson) => ({
-      id: `db-${lesson.topic_title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      title: lesson.topic_title || lesson.title,
+    .map((row) => ({
+      id: `db-${(row.topic_title || row.title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
+      title: row.topic_title || row.title,
       description: 'Published from uploaded documentation',
     }));
 };

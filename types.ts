@@ -6,6 +6,12 @@ export interface Topic {
   description?: string;
 }
 
+export interface LessonSource {
+  documentTitle: string;
+  pageNumber?: number;
+  excerpt?: string;
+}
+
 export interface LessonContent {
   title: string;
   overview: string;
@@ -27,12 +33,6 @@ export interface LessonContent {
   sources?: LessonSource[];
 }
 
-export interface LessonSource {
-  documentTitle: string;
-  pageNumber?: number;
-  excerpt?: string;
-}
-
 export interface DocumentRecord {
   id: string;
   filename: string;
@@ -41,6 +41,20 @@ export interface DocumentRecord {
   topicTags: string[];
   status: 'uploaded' | 'processing' | 'draft' | 'published' | 'failed';
   createdAt: string;
+}
+
+export interface DraftLesson {
+  id: string;
+  topicTitle: string;
+  title: string;
+  overview: string | null;
+  createdAt: string;
+  sourceDocument: {
+    id: string;
+    filename: string;
+    title: string;
+  } | null;
+  lesson: LessonContent;
 }
 
 export enum LoadingStatus {

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { LessonContent, LoadingStatus } from '../types';
-import { X, Download, Loader2, AlertCircle, Info, ShieldAlert, Thermometer, Wrench, HelpCircle, MessageCircle, Star, Scale, Activity } from 'lucide-react';
+import { X, Download, Loader as Loader2, CircleAlert as AlertCircle, Info, ShieldAlert, Thermometer, Wrench, Circle as HelpCircle, MessageCircle, Star, Scale, Activity, BookMarked } from 'lucide-react';
 import { exportLessonToPDF } from '../services/pdfService';
 
 interface LessonModalProps {
@@ -20,7 +20,7 @@ const LessonModal: React.FC<LessonModalProps> = ({ status, lesson, onClose }) =>
         <div className="p-6 bg-[#FF6B00] border-b-4 border-black flex justify-between items-center sticky top-0 z-20 text-black">
           <div className="flex flex-col">
             <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-none">
-              {status === LoadingStatus.LOADING ? 'Searching Documentation Database...' : lesson?.title}
+              {status === LoadingStatus.LOADING ? 'Loading from Documentation Database...' : lesson?.title}
             </h2>
             {lesson?.difficulty && (
               <div className="flex gap-2 mt-2">
@@ -50,7 +50,7 @@ const LessonModal: React.FC<LessonModalProps> = ({ status, lesson, onClose }) =>
               <Loader2 className="h-16 w-16 animate-spin" />
               <p className="text-xl font-bold animate-pulse text-center">
                 Searching published source documentation...<br/>
-                <span className="text-sm opacity-60 font-medium italic">Lessons are loaded from uploaded PDFs, not generated live.</span>
+                <span className="text-sm opacity-60 font-medium italic">Lessons are loaded from uploaded PDFs.</span>
               </p>
             </div>
           )}
@@ -58,7 +58,7 @@ const LessonModal: React.FC<LessonModalProps> = ({ status, lesson, onClose }) =>
           {status === LoadingStatus.ERROR && (
             <div className="flex flex-col items-center justify-center space-y-4 py-20 text-red-600">
               <AlertCircle className="h-16 w-16" />
-              <p className="text-xl font-bold">Generation failed. Please retry in a few moments.</p>
+              <p className="text-xl font-bold">Failed to load lesson. Please retry in a moment.</p>
             </div>
           )}
 
@@ -104,18 +104,19 @@ const LessonModal: React.FC<LessonModalProps> = ({ status, lesson, onClose }) =>
               {lesson.sources && lesson.sources.length > 0 && (
                 <div className="lg:col-span-3">
                   <div className="border-4 border-black bg-white p-6 neo-shadow-hover transition-all">
-                    <h3 className="text-lg font-black uppercase text-black border-b-2 border-black pb-2 mb-4">
-                      Source Documentation
-                    </h3>
+                    <div className="flex items-center gap-2 mb-4 border-b-2 border-black pb-2">
+                      <BookMarked className="h-5 w-5" />
+                      <h3 className="text-lg font-black uppercase text-black">Source Documentation</h3>
+                    </div>
                     <div className="space-y-3">
                       {lesson.sources.map((source, index) => (
                         <div key={`${source.documentTitle}-${index}`} className="bg-zinc-100 border-2 border-black p-3">
                           <p className="text-sm font-black">
                             {source.documentTitle}
-                            {source.pageNumber ? `, page ${source.pageNumber}` : ''}
+                            {source.pageNumber ? `, p. ${source.pageNumber}` : ''}
                           </p>
                           {source.excerpt && (
-                            <p className="text-xs font-bold opacity-70 mt-1">{source.excerpt}</p>
+                            <p className="text-xs font-bold opacity-70 mt-1 italic">"{source.excerpt}"</p>
                           )}
                         </div>
                       ))}
@@ -131,7 +132,7 @@ const LessonModal: React.FC<LessonModalProps> = ({ status, lesson, onClose }) =>
         {status === LoadingStatus.SUCCESS && lesson && (
           <div className="p-4 md:p-6 border-t-4 border-black bg-white flex flex-col sm:flex-row gap-4 items-center justify-between">
             <span className="text-xs font-black text-black uppercase tracking-widest bg-zinc-100 px-3 py-1 border-2 border-black">
-              Pro-Study Engine v3.0 / High Fidelity
+              Pro-Study Engine v3.0 / Source-Backed
             </span>
             <button 
               onClick={() => exportLessonToPDF(lesson)}

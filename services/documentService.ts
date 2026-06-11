@@ -29,10 +29,7 @@ export const listDocuments = async (): Promise<DocumentRecord[]> => {
     .select('id, filename, title, description, topic_tags, status, created_at')
     .order('created_at', { ascending: false });
 
-  if (error) {
-    throw error;
-  }
-
+  if (error) throw error;
   return (data || []).map(mapDocumentRow);
 };
 
@@ -40,31 +37,21 @@ export const uploadDocument = async (file: File): Promise<DocumentRecord> => {
   const supabase = requireSupabase();
   const path = `${Date.now()}-${file.name}`;
 
-  const storageResult = await supabase.storage
+  const { error: storageError } = await supabase.storage
     .from('source-documents')
     .upload(path, file, {
       contentType: file.type || 'application/pdf',
       upsert: false,
     });
 
-  if (storageResult.error) {
-    throw storageResult.error;
-  }
+  if (storageError) throw storageError;
 
   const { data, error } = await supabase.functions.invoke<DocumentRow>('process-pdf', {
-    body: {
-      path,
-      filename: file.name,
-    },
+    body: { path, filename: file.name },
   });
 
-  if (error) {
-    throw error;
-  }
-
-  if (!data) {
-    throw new Error('The PDF processor did not return a document record.');
-  }
+  if (error) throw error;
+  if (!data) throw new Error('The process-pdf function did not return a document record.');
 
   return mapDocumentRow(data);
 };
