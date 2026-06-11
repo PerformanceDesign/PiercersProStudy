@@ -24,6 +24,23 @@ export interface LessonContent {
   redFlags?: string;
   clientDiscussion?: string;
   commonIssues?: string;
+  sources?: LessonSource[];
+}
+
+export interface LessonSource {
+  documentTitle: string;
+  pageNumber?: number;
+  excerpt?: string;
+}
+
+export interface DocumentRecord {
+  id: string;
+  filename: string;
+  title: string;
+  description?: string | null;
+  topicTags: string[];
+  status: 'uploaded' | 'processing' | 'draft' | 'published' | 'failed';
+  createdAt: string;
 }
 
 export enum LoadingStatus {

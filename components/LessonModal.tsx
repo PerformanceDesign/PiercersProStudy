@@ -20,7 +20,7 @@ const LessonModal: React.FC<LessonModalProps> = ({ status, lesson, onClose }) =>
         <div className="p-6 bg-[#FF6B00] border-b-4 border-black flex justify-between items-center sticky top-0 z-20 text-black">
           <div className="flex flex-col">
             <h2 className="text-2xl md:text-3xl font-black uppercase tracking-tighter leading-none">
-              {status === LoadingStatus.LOADING ? 'Consulting Master Database...' : lesson?.title}
+              {status === LoadingStatus.LOADING ? 'Searching Documentation Database...' : lesson?.title}
             </h2>
             {lesson?.difficulty && (
               <div className="flex gap-2 mt-2">
@@ -49,8 +49,8 @@ const LessonModal: React.FC<LessonModalProps> = ({ status, lesson, onClose }) =>
             <div className="h-full flex flex-col items-center justify-center space-y-4 py-20 text-black">
               <Loader2 className="h-16 w-16 animate-spin" />
               <p className="text-xl font-bold animate-pulse text-center">
-                Generating comprehensive technical brief...<br/>
-                <span className="text-sm opacity-60 font-medium italic">Cross-referencing jewelry standards and clinical protocols.</span>
+                Searching published source documentation...<br/>
+                <span className="text-sm opacity-60 font-medium italic">Lessons are loaded from uploaded PDFs, not generated live.</span>
               </p>
             </div>
           )}
@@ -99,6 +99,28 @@ const LessonModal: React.FC<LessonModalProps> = ({ status, lesson, onClose }) =>
               {lesson.faqs && (
                 <div className="lg:col-span-3">
                   <Section title="Frequent Professional Questions" content={lesson.faqs} icon={<HelpCircle className="h-5 w-5"/>} />
+                </div>
+              )}
+              {lesson.sources && lesson.sources.length > 0 && (
+                <div className="lg:col-span-3">
+                  <div className="border-4 border-black bg-white p-6 neo-shadow-hover transition-all">
+                    <h3 className="text-lg font-black uppercase text-black border-b-2 border-black pb-2 mb-4">
+                      Source Documentation
+                    </h3>
+                    <div className="space-y-3">
+                      {lesson.sources.map((source, index) => (
+                        <div key={`${source.documentTitle}-${index}`} className="bg-zinc-100 border-2 border-black p-3">
+                          <p className="text-sm font-black">
+                            {source.documentTitle}
+                            {source.pageNumber ? `, page ${source.pageNumber}` : ''}
+                          </p>
+                          {source.excerpt && (
+                            <p className="text-xs font-bold opacity-70 mt-1">{source.excerpt}</p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
