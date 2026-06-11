@@ -2,9 +2,10 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { CURRICULUM, PIERCING_ATLAS } from './constants';
 import { LessonContent, LoadingStatus, SessionStats, Topic } from './types';
-import { generateLesson, suggestTopics } from './services/geminiService';
+import { getLessonByTopic, suggestTopics } from './services/lessonService';
 import TopicNode from './components/TopicNode';
 import LessonModal from './components/LessonModal';
+import DocumentUpload from './components/DocumentUpload';
 import { Stethoscope, Skull, ShieldCheck, GraduationCap, RefreshCcw, Plus, Sparkles, Send, Loader2, Book, Zap } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -22,10 +23,22 @@ const App: React.FC = () => {
     setLoadingStatus(LoadingStatus.LOADING);
     setActiveLesson(null);
     try {
-      const lesson = await generateLesson(title, isDeepDive);
-      setActiveLesson(lesson);
+      const lesson = await getLessonByTopic(title);
+      if (lesson) {
+        setActiveLesson(lesson);
+        setStats(prev => ({ ...prev, lessonsGenerated: prev.lessonsGenerated + 1 }));
+      } else {
+        setActiveLesson({
+          title,
+          overview: 'No documentation has been uploaded for this topic yet.',
+          anatomy: 'Upload and publish source documentation before this section becomes available.',
+          tools: 'Upload and publish source documentation before this section becomes available.',
+          procedure: 'Upload and publish source documentation before this section becomes available.',
+          aftercare: 'Upload and publish source documentation before this section becomes available.',
+          complications: 'Upload and publish source documentation before this section becomes available.',
+        });
+      }
       setLoadingStatus(LoadingStatus.SUCCESS);
-      setStats(prev => ({ ...prev, lessonsGenerated: prev.lessonsGenerated + 1 }));
     } catch (error) {
       console.error(error);
       setLoadingStatus(LoadingStatus.ERROR);
@@ -157,6 +170,8 @@ const App: React.FC = () => {
                 <StatBox label="Regions Mapped" value={stats.topicsExplored} />
               </div>
             </div>
+
+            <DocumentUpload />
 
             <div className="bg-black text-white p-6 border-4 border-black neo-shadow">
               <h3 className="text-xl font-black uppercase mb-4 text-[#FF6B00] flex items-center gap-2">
