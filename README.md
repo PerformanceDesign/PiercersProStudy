@@ -12,7 +12,6 @@ Lessons should come from uploaded PDF documentation stored in Supabase, with opt
 
 **Prerequisites:**  Node.js
 
-
 1. Install dependencies:
    `npm install`
 2. Create [.env.local](.env.local) with:
@@ -30,3 +29,44 @@ Lessons should come from uploaded PDF documentation stored in Supabase, with opt
 - `lesson_sources` links lessons back to source PDFs and pages.
 
 The frontend reads published lessons from Supabase through `services/lessonService.ts`.
+
+## Android App
+
+This project uses Capacitor to package the existing React app as a personal Android app.
+
+1. Install dependencies:
+   `npm install`
+2. Create `.env.local` from `.env.example`.
+3. Build and sync Android assets:
+   `npm run android:sync`
+4. Open the native project:
+   `npm run android:open`
+
+Android Studio with a Java/JDK setup is required to build and install the APK.
+
+The Android app still reads from Supabase, so it needs internet access unless an offline cache is added later.
+
+## Importing PDF Sources
+
+Local PDF imports are handled outside the visitor app.
+
+Default folders:
+
+- `D:\Paul Subtirel\Body Piercing\curs`
+- `D:\Paul Subtirel\Body Piercing\wisdom-learning curs`
+- `D:\Paul Subtirel\Body Piercing\learnin materials`
+
+Set these local environment variables before importing:
+
+```bash
+VITE_SUPABASE_URL=https://uwehxgxlfalbuirsrzyw.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Then run:
+
+```bash
+npm run import:pdfs
+```
+
+The importer extracts page-level text with `pdfplumber`, creates published `documents`, and stores source pages in `document_chunks`.
