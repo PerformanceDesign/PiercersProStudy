@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "Piercer's Pro-Study",
+    "slug": "piercers-pro-study",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "scheme": "piercersprostudy",
+    "android": {
+      "package": "ro.augmenta.piercersprostudy",
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "extra": {
+      "eas": {
+        "projectId": ""
+      }
+    }
+  }
+}

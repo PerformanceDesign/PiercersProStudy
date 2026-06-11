@@ -46,6 +46,22 @@ Android Studio with a Java/JDK setup is required to build and install the APK.
 
 The Android app still reads from Supabase, so it needs internet access unless an offline cache is added later.
 
+## Expo Mobile App
+
+There is also a mobile-native Expo app in `mobile/`. This is the preferred path when local Android Studio/JDK tooling is unavailable, because EAS can build the APK in the cloud.
+
+1. Create `mobile/.env.local` from `mobile/.env.example`.
+2. Install dependencies:
+   `cd mobile && npm install`
+3. Type-check:
+   `npm run typecheck`
+4. Start Expo:
+   `npm run start`
+5. Build an Android APK with EAS:
+   `npm run build:android`
+
+EAS requires Expo authentication. Run `npx eas login` or set `EXPO_TOKEN` before building.
+
 ## Importing PDF Sources
 
 Local PDF imports are handled outside the visitor app.
