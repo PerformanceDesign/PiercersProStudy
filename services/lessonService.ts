@@ -1,4 +1,4 @@
-import { LessonContent, Topic } from '../types';
+import { LessonContent } from '../types';
 import { requireSupabase } from './supabaseClient';
 
 type LessonRow = {
@@ -72,25 +72,16 @@ export const getLessonByTopic = async (topicTitle: string): Promise<LessonConten
   return data ? mapLessonRow(data) : null;
 };
 
-export const suggestTopics = async (existingTopics: string[]): Promise<Topic[]> => {
+export const listPublishedTopics = async (): Promise<string[]> => {
   const supabase = requireSupabase();
-  const existing = new Set(existingTopics.map((t) => t.toLowerCase()));
 
   const { data, error } = await supabase
     .from('lessons')
-    .select('topic_title, title')
-    .eq('status', 'published')
-    .order('created_at', { ascending: false })
-    .limit(25);
+    .select('topic_title')
+    .eq('status', 'published');
 
   if (error) throw error;
 
-  return (data || [])
-    .filter((row) => !existing.has((row.topic_title || row.title).toLowerCase()))
-    .slice(0, 5)
-    .map((row) => ({
-      id: `db-${(row.topic_title || row.title).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
-      title: row.topic_title || row.title,
-      description: 'Published from uploaded documentation',
-    }));
+  const titles = new Set((data || []).map((row) => row.topic_title.toLowerCase()));
+  return Array.from(titles);
 };
