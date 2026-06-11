@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -19,6 +19,7 @@ import { DocumentRecord, SourceChunk, Topic } from './src/types';
 type Tab = 'study' | 'sources' | 'search';
 
 export default function App() {
+  const studyScrollRef = useRef<ScrollView>(null);
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [chunks, setChunks] = useState<SourceChunk[]>([]);
   const [selectedTopic, setSelectedTopic] = useState<Topic | null>(null);
@@ -60,9 +61,11 @@ export default function App() {
 
   const openTopic = async (topic: Topic) => {
     setSelectedTopic(topic);
+    setSelectedChunks([]);
     setTab('study');
     setIsLoading(true);
     setError(null);
+    setTimeout(() => studyScrollRef.current?.scrollToEnd({ animated: true }), 80);
     try {
       const resultsById = new Map<string, SourceChunk>();
       for (const term of topic.terms) {
@@ -81,11 +84,13 @@ export default function App() {
 
   const runSearch = async () => {
     setSelectedTopic({ title: `Search: ${query}`, terms: [query] });
+    setSelectedChunks([]);
     setIsLoading(true);
     setError(null);
     try {
       setSelectedChunks(await searchChunks(query, 25));
       setTab('study');
+      setTimeout(() => studyScrollRef.current?.scrollToEnd({ animated: true }), 80);
     } catch (err) {
       console.error(err);
       setError('Search failed.');
@@ -112,7 +117,7 @@ export default function App() {
       {error && <Text style={styles.error}>{error}</Text>}
 
       {tab === 'study' && (
-        <ScrollView contentContainerStyle={styles.content}>
+        <ScrollView ref={studyScrollRef} contentContainerStyle={styles.content}>
           <View style={styles.statsRow}>
             <Stat label="Sources" value={documents.length} />
             <Stat label="Pages" value={chunks.length} />
@@ -124,6 +129,7 @@ export default function App() {
               key={topic.title}
               topic={topic}
               hasCoverage={topicHasCoverage(topic, documents, chunks)}
+              isSelected={selectedTopic?.title === topic.title}
               onPress={() => openTopic(topic)}
             />
           ))}
@@ -134,18 +140,30 @@ export default function App() {
               key={topic.title}
               topic={topic}
               hasCoverage={topicHasCoverage(topic, documents, chunks)}
+              isSelected={selectedTopic?.title === topic.title}
               onPress={() => openTopic(topic)}
             />
           ))}
 
-          <Text style={styles.sectionTitle}>{selectedTopic?.title ?? 'Open a topic'}</Text>
-          {isLoading ? (
-            <ActivityIndicator color="#ff6b00" />
-          ) : selectedChunks.length === 0 ? (
-            <Text style={styles.empty}>No matching source notes loaded yet.</Text>
-          ) : (
-            selectedChunks.map((chunk) => <ChunkCard key={chunk.id} chunk={chunk} documents={documents} />)
-          )}
+          <View style={styles.sourcePanel}>
+            <Text style={styles.panelEyebrow}>Source Notes</Text>
+            <Text style={styles.panelTitle}>{selectedTopic?.title ?? 'Open a topic'}</Text>
+            {selectedTopic && !isLoading && selectedChunks.length > 0 && (
+              <Text style={styles.panelMeta}>{selectedChunks.length} matching source pages found.</Text>
+            )}
+            {isLoading && selectedTopic ? (
+              <View style={styles.loadingRow}>
+                <ActivityIndicator color="#000" />
+                <Text style={styles.loadingText}>Loading source notes for {selectedTopic.title}...</Text>
+              </View>
+            ) : !selectedTopic ? (
+              <Text style={styles.empty}>Tap a topic above to load matching source notes from your PDFs.</Text>
+            ) : selectedChunks.length === 0 ? (
+              <Text style={styles.empty}>No matching source notes yet. Add more PDFs for this topic.</Text>
+            ) : (
+              selectedChunks.map((chunk) => <ChunkCard key={chunk.id} chunk={chunk} documents={documents} />)
+            )}
+          </View>
         </ScrollView>
       )}
 
@@ -203,12 +221,28 @@ function Stat({ label, value }: { label: string; value: number }) {
   );
 }
 
-function TopicCard({ topic, hasCoverage, onPress }: { topic: Topic; hasCoverage: boolean; onPress: () => void }) {
+function TopicCard({
+  topic,
+  hasCoverage,
+  isSelected,
+  onPress,
+}: {
+  topic: Topic;
+  hasCoverage: boolean;
+  isSelected: boolean;
+  onPress: () => void;
+}) {
   return (
-    <Pressable style={styles.topicCard} onPress={onPress}>
+    <Pressable
+      android_ripple={{ color: '#ffb36b' }}
+      style={({ pressed }) => [styles.topicCard, isSelected && styles.topicCardSelected, pressed && styles.topicCardPressed]}
+      onPress={onPress}
+    >
       <View style={[styles.dot, hasCoverage ? styles.dotOn : styles.dotOff]} />
-      <Text style={styles.topicTitle}>{topic.title}</Text>
-      <Text style={styles.topicStatus}>{hasCoverage ? 'Has source data' : 'Gap'}</Text>
+      <Text style={[styles.topicTitle, isSelected && styles.topicTitleSelected]}>{topic.title}</Text>
+      <Text style={[styles.topicStatus, isSelected && styles.topicStatusSelected]}>
+        {isSelected ? 'Selected' : hasCoverage ? 'Has source data' : 'Gap'}
+      </Text>
     </Pressable>
   );
 }
@@ -315,6 +349,13 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 10,
   },
+  topicCardSelected: {
+    backgroundColor: '#000',
+    borderColor: '#fff',
+  },
+  topicCardPressed: {
+    transform: [{ scale: 0.99 }],
+  },
   dot: {
     width: 10,
     height: 10,
@@ -332,11 +373,60 @@ const styles = StyleSheet.create({
     fontSize: 15,
     textTransform: 'uppercase',
   },
+  topicTitleSelected: {
+    color: '#ff6b00',
+  },
   topicStatus: {
     fontSize: 10,
     fontWeight: '900',
     color: '#555',
     textTransform: 'uppercase',
+  },
+  topicStatusSelected: {
+    color: '#fff',
+  },
+  sourcePanel: {
+    backgroundColor: '#fff',
+    borderColor: '#000',
+    borderWidth: 4,
+    padding: 14,
+    marginTop: 18,
+  },
+  panelEyebrow: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#ff6b00',
+    color: '#000',
+    fontSize: 11,
+    fontWeight: '900',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    textTransform: 'uppercase',
+  },
+  panelTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    marginTop: 10,
+    textTransform: 'uppercase',
+  },
+  panelMeta: {
+    color: '#555',
+    fontWeight: '900',
+    marginBottom: 12,
+    marginTop: 4,
+    textTransform: 'uppercase',
+  },
+  loadingRow: {
+    alignItems: 'center',
+    borderColor: '#000',
+    borderWidth: 3,
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 12,
+    padding: 14,
+  },
+  loadingText: {
+    flex: 1,
+    fontWeight: '900',
   },
   card: {
     backgroundColor: '#fff',
