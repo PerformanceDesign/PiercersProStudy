@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "hostinger_mcp": {
+      "enabled": false
+    },
+    "github": {
+      "enabled": true
+    }
+  }
+}
