@@ -14,8 +14,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": ""
+        "projectId": "d26b98d9-e6cb-43c7-88cb-4953aa8dade1"
       }
-    }
+    },
+    "owner": "paulsubtirels-team"
   }
 }
