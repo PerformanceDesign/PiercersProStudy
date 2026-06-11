@@ -6,7 +6,8 @@ import TopicNode from './components/TopicNode';
 import LessonModal from './components/LessonModal';
 import DocumentUpload from './components/DocumentUpload';
 import AdminReview from './components/AdminReview';
-import { Stethoscope, Skull, ShieldCheck, GraduationCap, RefreshCcw, Plus, Sparkles, Send, Loader as Loader2, Zap, Settings } from 'lucide-react';
+import SourceLibrary, { useSourceLibrary } from './components/SourceLibrary';
+import { Skull, RefreshCcw, Plus, Sparkles, Send, Loader as Loader2, Zap, Settings, BookOpen } from 'lucide-react';
 
 const PLACEHOLDER_LESSON = (title: string): LessonContent => ({
   title,
@@ -21,13 +22,31 @@ const PLACEHOLDER_LESSON = (title: string): LessonContent => ({
 const App: React.FC = () => {
   const [loadingStatus, setLoadingStatus] = useState<LoadingStatus>(LoadingStatus.IDLE);
   const [activeLesson, setActiveLesson] = useState<LessonContent | null>(null);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [stats, setStats] = useState<SessionStats>({ lessonsGenerated: 0, topicsExplored: 0 });
   const [exploredIds, setExploredIds] = useState<Set<string>>(new Set());
   const [dynamicTopics, setDynamicTopics] = useState<Topic[]>([]);
   const [customRequest, setCustomRequest] = useState('');
   const [isExpanding, setIsExpanding] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
+  const sourceLibrary = useSourceLibrary();
+
+  const sourceTerms = useMemo(() => {
+    const terms = new Set<string>();
+    sourceLibrary.documents.forEach((document) => {
+      terms.add(document.title.toLowerCase());
+      document.topicTags.forEach((tag) => terms.add(tag.toLowerCase()));
+    });
+    sourceLibrary.chunks.forEach((chunk) => {
+      if (chunk.topicTitle) terms.add(chunk.topicTitle.toLowerCase());
+      if (chunk.heading) terms.add(chunk.heading.toLowerCase());
+    });
+    return Array.from(terms);
+  }, [sourceLibrary.documents, sourceLibrary.chunks]);
+
+  const hasSourceCoverage = useCallback((title: string) => {
+    const normalized = title.toLowerCase();
+    return sourceTerms.some((term) => term.includes(normalized) || normalized.includes(term));
+  }, [sourceTerms]);
 
   const handleGenerateLesson = useCallback(async (title: string) => {
     setLoadingStatus(LoadingStatus.LOADING);
@@ -36,7 +55,9 @@ const App: React.FC = () => {
       const lesson = await getLessonByTopic(title);
       setActiveLesson(lesson ?? PLACEHOLDER_LESSON(title));
       setLoadingStatus(LoadingStatus.SUCCESS);
-      setStats((prev) => ({ ...prev, lessonsGenerated: prev.lessonsGenerated + 1 }));
+      if (lesson) {
+        setStats((prev) => ({ ...prev, lessonsGenerated: prev.lessonsGenerated + 1 }));
+      }
     } catch (error) {
       console.error(error);
       setLoadingStatus(LoadingStatus.ERROR);
@@ -91,20 +112,7 @@ const App: React.FC = () => {
     setCustomRequest('');
   };
 
-  const filteredCurriculum = useMemo(() => {
-    const combined = [...CURRICULUM, ...dynamicTopics];
-    if (!activeFilter) return combined;
-    const filterMap: Record<string, string[]> = {
-      CLINICAL: ['anatomy-physiology', 'health-safety'],
-      CERTIFIED: ['jewelry-materials', 'aftercare-healing'],
-      MASTERCLASS: ['piercing-techniques', 'ethics-business', 'jewelry-metallurgy', 'advanced-piercing'],
-    };
-    return combined.filter(
-      (c) =>
-        filterMap[activeFilter]?.includes(c.id) ||
-        (activeFilter === 'MASTERCLASS' && c.id.startsWith('custom-'))
-    );
-  }, [activeFilter, dynamicTopics]);
+  const filteredCurriculum = useMemo(() => [...CURRICULUM, ...dynamicTopics], [dynamicTopics]);
 
   return (
     <div className="min-h-screen pb-20 text-black">
@@ -120,28 +128,8 @@ const App: React.FC = () => {
           </div>
 
           <nav className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm font-bold uppercase">
-            {!isAdminMode && [
-              { id: 'CLINICAL', icon: Stethoscope },
-              { id: 'CERTIFIED', icon: ShieldCheck },
-              { id: 'MASTERCLASS', icon: GraduationCap },
-            ].map(({ id, icon: Icon }) => (
-              <button
-                key={id}
-                onClick={() => setActiveFilter(activeFilter === id ? null : id)}
-                className={`flex items-center gap-1 px-3 py-1.5 border-2 transition-all active:translate-y-0.5 ${
-                  activeFilter === id
-                    ? 'bg-[#FF6B00] text-black border-black'
-                    : 'bg-black text-[#FF6B00] border-[#FF6B00] hover:bg-[#FF6B00]/10'
-                }`}
-              >
-                <Icon className="h-4 w-4" /> {id}
-              </button>
-            ))}
             <button
-              onClick={() => {
-                setIsAdminMode((v) => !v);
-                setActiveFilter(null);
-              }}
+              onClick={() => setIsAdminMode((v) => !v)}
               className={`flex items-center gap-1 px-3 py-1.5 border-2 transition-all active:translate-y-0.5 ${
                 isAdminMode
                   ? 'bg-[#FF6B00] text-black border-black'
@@ -171,16 +159,20 @@ const App: React.FC = () => {
                   OF PIERCING.
                 </h2>
                 <p className="text-xl font-bold border-l-8 border-[#FF6B00] pl-6 py-2 mb-8">
-                  Technical reference guides for every known body modification procedure.
+                  Source-backed study guides from your uploaded piercing documentation.
                 </p>
                 <div className="grid grid-cols-2 gap-4">
-                  <StatBox label="Units Studied" value={stats.lessonsGenerated} />
-                  <StatBox label="Regions Mapped" value={stats.topicsExplored} />
+                  <StatBox label="Sources" value={sourceLibrary.documents.length} />
+                  <StatBox label="Pages Indexed" value={sourceLibrary.chunks.length} />
                 </div>
               </div>
             )}
 
-            <DocumentUpload />
+            {!isAdminMode ? (
+              <SourceLibrary {...sourceLibrary} />
+            ) : (
+              <DocumentUpload />
+            )}
 
             {!isAdminMode && (
               <div className="bg-black text-white p-6 border-4 border-black neo-shadow">
@@ -209,8 +201,12 @@ const App: React.FC = () => {
             ) : (
               <>
                 <h3 className="text-3xl font-black uppercase tracking-tighter bg-white border-2 border-black px-4 py-2 inline-block">
-                  {activeFilter ? `${activeFilter} Focus` : 'Curriculum Engine'}
+                  Curriculum Engine
                 </h3>
+                <p className="text-sm font-bold bg-white border-2 border-black inline-flex items-center gap-2 px-3 py-2">
+                  <BookOpen className="h-4 w-4" />
+                  Green markers mean this topic matches at least one source document or extracted page.
+                </p>
                 <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar">
                   {filteredCurriculum.map((topic) => (
                     <TopicNode
@@ -219,6 +215,7 @@ const App: React.FC = () => {
                       level={0}
                       onGenerate={handleGenerateLesson}
                       onExplore={handleTopicExplored}
+                      hasCoverage={hasSourceCoverage}
                     />
                   ))}
                 </div>
@@ -259,15 +256,22 @@ const App: React.FC = () => {
                 <div key={category.category} className="space-y-4">
                   <h4 className="text-xl font-black uppercase border-b-4 border-black inline-block">{category.category}</h4>
                   <div className="flex flex-wrap gap-2">
-                    {category.piercings.map((p) => (
-                      <button
-                        key={p}
-                        onClick={() => handleGenerateLesson(p)}
-                        className="px-3 py-1.5 bg-zinc-100 border-2 border-black font-bold text-xs md:text-sm uppercase hover:bg-[#FF6B00] hover:-translate-y-1 transition-all active:translate-y-0"
-                      >
-                        {p}
-                      </button>
-                    ))}
+                    {category.piercings.map((p) => {
+                      const hasCoverage = hasSourceCoverage(p);
+
+                      return (
+                        <button
+                          key={p}
+                          onClick={() => handleGenerateLesson(p)}
+                          className={`px-3 py-1.5 border-2 border-black font-bold text-xs md:text-sm uppercase hover:bg-[#FF6B00] hover:-translate-y-1 transition-all active:translate-y-0 ${
+                            hasCoverage ? 'bg-green-50 text-black' : 'bg-zinc-100 text-zinc-500'
+                          }`}
+                        >
+                          <span className={`inline-block h-2 w-2 rounded-full mr-2 ${hasCoverage ? 'bg-green-600' : 'bg-zinc-300'}`} />
+                          {p}
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}

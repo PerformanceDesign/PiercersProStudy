@@ -21,7 +21,7 @@ const AdminReview: React.FC = () => {
       setDrafts(await listDraftLessons());
     } catch (err) {
       console.error(err);
-      setError('Failed to load draft lessons. Check your Supabase RLS policies allow SELECT on draft lessons.');
+      setError('Draft review needs a protected admin publishing flow. Source documents can still be viewed in the main library.');
     } finally {
       setIsLoading(false);
     }
@@ -114,7 +114,7 @@ const AdminReview: React.FC = () => {
           <div className="border-4 border-black bg-white p-10 text-center neo-shadow">
             <CheckCircle2 className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="font-black uppercase text-lg">No Drafts Awaiting Review</p>
-            <p className="text-sm font-bold opacity-60 mt-1">Upload a PDF to begin the documentation pipeline.</p>
+            <p className="text-sm font-bold opacity-60 mt-1">Source documents are available in the library. Draft lesson publishing can be added after the import/review workflow is protected.</p>
           </div>
         ) : (
           <div className="space-y-3">

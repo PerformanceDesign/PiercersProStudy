@@ -43,6 +43,17 @@ export interface DocumentRecord {
   createdAt: string;
 }
 
+export interface SourceChunk {
+  id: string;
+  documentId: string;
+  documentTitle: string;
+  documentFilename: string;
+  topicTitle?: string | null;
+  heading?: string | null;
+  pageNumber?: number | null;
+  content: string;
+}
+
 export interface DraftLesson {
   id: string;
   topicTitle: string;

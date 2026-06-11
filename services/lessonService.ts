@@ -1,4 +1,5 @@
 import { LessonContent, Topic } from '../types';
+import { listSourceChunks } from './sourceService';
 import { requireSupabase } from './supabaseClient';
 
 type LessonRow = {
@@ -53,6 +54,27 @@ const mapLessonRow = (row: LessonRow): LessonContent => ({
   })),
 });
 
+const getSourceChunksForTopic = async (topicTitle: string) => {
+  const exactChunks = await listSourceChunks(topicTitle, 8);
+  if (exactChunks.length > 0) return exactChunks;
+
+  const keywords = topicTitle
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length > 4 && !['piercing', 'common', 'standard'].includes(word))
+    .slice(0, 4);
+
+  const chunksById = new Map<string, Awaited<ReturnType<typeof listSourceChunks>>[number]>();
+  for (const keyword of keywords) {
+    const keywordChunks = await listSourceChunks(keyword, 4);
+    keywordChunks.forEach((chunk) => chunksById.set(chunk.id, chunk));
+    if (chunksById.size >= 8) break;
+  }
+
+  return Array.from(chunksById.values()).slice(0, 8);
+};
+
 export const getLessonByTopic = async (topicTitle: string): Promise<LessonContent | null> => {
   const supabase = requireSupabase();
 
@@ -69,7 +91,32 @@ export const getLessonByTopic = async (topicTitle: string): Promise<LessonConten
     .maybeSingle<LessonRow>();
 
   if (error) throw error;
-  return data ? mapLessonRow(data) : null;
+  if (data) return mapLessonRow(data);
+
+  const chunks = await getSourceChunksForTopic(topicTitle);
+  if (chunks.length === 0) return null;
+
+  const excerptBlock = chunks
+    .map((chunk) => {
+      const page = chunk.pageNumber ? `p. ${chunk.pageNumber}` : 'source page';
+      return `${chunk.documentTitle}, ${page}\n${chunk.content}`;
+    })
+    .join('\n\n---\n\n');
+
+  return {
+    title: `${topicTitle} - Source Notes`,
+    overview: `No reviewed lesson has been published for "${topicTitle}" yet, but the source database contains matching documentation excerpts. Use these notes as a research/reference view until a structured lesson is reviewed and published.`,
+    anatomy: excerptBlock,
+    tools: EMPTY,
+    procedure: EMPTY,
+    aftercare: EMPTY,
+    complications: EMPTY,
+    sources: chunks.map((chunk) => ({
+      documentTitle: chunk.documentTitle,
+      pageNumber: chunk.pageNumber ?? undefined,
+      excerpt: chunk.content.slice(0, 220),
+    })),
+  };
 };
 
 export const suggestTopics = async (existingTopics: string[]): Promise<Topic[]> => {

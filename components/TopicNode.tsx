@@ -8,11 +8,13 @@ interface TopicNodeProps {
   level: number;
   onGenerate: (title: string) => void;
   onExplore?: (id: string) => void;
+  hasCoverage?: (title: string) => boolean;
 }
 
-const TopicNode: React.FC<TopicNodeProps> = ({ topic, level, onGenerate, onExplore }) => {
+const TopicNode: React.FC<TopicNodeProps> = ({ topic, level, onGenerate, onExplore, hasCoverage }) => {
   const [isOpen, setIsOpen] = useState(false);
   const hasSubtopics = topic.subtopics && topic.subtopics.length > 0;
+  const isCovered = hasCoverage?.(topic.title) ?? false;
 
   const handleToggle = () => {
     if (hasSubtopics) {
@@ -41,6 +43,7 @@ const TopicNode: React.FC<TopicNodeProps> = ({ topic, level, onGenerate, onExplo
             <div className="w-5 mr-2" />
           )}
           <span className={`font-bold ${level === 0 ? 'text-lg uppercase' : 'text-base'}`}>
+            <span className={`inline-block h-2.5 w-2.5 rounded-full mr-2 ${isCovered ? 'bg-green-600' : 'bg-zinc-300'}`} />
             {topic.title}
           </span>
         </div>
@@ -57,7 +60,7 @@ const TopicNode: React.FC<TopicNodeProps> = ({ topic, level, onGenerate, onExplo
           "
         >
           <BookOpen className="h-4 w-4" />
-          OPEN LESSON
+          {isCovered ? 'OPEN SOURCE NOTES' : 'VIEW GAP'}
         </button>
       </div>
 
@@ -70,6 +73,7 @@ const TopicNode: React.FC<TopicNodeProps> = ({ topic, level, onGenerate, onExplo
               level={level + 1} 
               onGenerate={onGenerate}
               onExplore={onExplore}
+              hasCoverage={hasCoverage}
             />
           ))}
         </div>
